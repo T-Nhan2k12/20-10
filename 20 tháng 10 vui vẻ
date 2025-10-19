@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>20/10 - Pháo hoa hình trái tim</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+    font-family: "Poppins", sans-serif;
+  }
+
+  /* === Trang 1 === */
+  .card-page {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #ffd6e0, #fff0f6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: opacity 1s ease;
+  }
+
+  .card-page h1 {
+    font-size: 2.5em;
+    color: #d63384;
+    margin: 0;
+  }
+
+  .card-page p {
+    color: #a83279;
+    font-size: 1.2em;
+    max-width: 80%;
+  }
+
+  /* Skip text */
+  .skip-text {
+    position: absolute;
+    bottom: 25px;
+    right: 30px;
+    color: #fff;
+    font-size: 1.1em;
+    font-weight: 600;
+    opacity: 0.95;
+    text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 15px rgba(255,255,255,0.6);
+    cursor: pointer;
+    user-select: none;
+    animation: fadeBlink 1.5s infinite;
+  }
+
+  @keyframes fadeBlink {
+    0%,100% { opacity: 0.95; }
+    50% { opacity: 0.6; }
+  }
+
+  .heart {
+    position: absolute;
+    color: #ff4d6d;
+    font-size: 20px;
+    opacity: 0.8;
+    animation: fall 6s linear infinite;
+  }
+
+  @keyframes fall {
+    0% { transform: translateY(-10vh) scale(1); opacity: 1; }
+    100% { transform: translateY(110vh) scale(1.5); opacity: 0; }
+  }
+
+  /* === Trang 2 === */
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: radial-gradient(circle at bottom, #000, #111);
+    display: none;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+<canvas id="fireworks"></canvas>
+
+<!-- Trang thiệp -->
+<div class="card-page" id="cardPage">
+  <h1>💐 Chúc mừng ngày Phụ nữ Việt Nam 20/10 💖</h1> 
+  <p>Chúc mày luôn xinh đẹp, hạnh phúc và tỏa sáng như những bông hoa!</p> 
+  <p>Học giỏi nữa, cố mà đỗ được vào chuyên Hạ Long hoặc có thể là xa hơn thế nữa</p> 
+  <p>Tuy mày lười thì có chút lười thật nhưng mà lúc cần tập trung vào một cái gì đấy thì mày sẽ cố gắng để làm tốt nhất có thể</p> 
+  <p>Trước hết cứ vượt qua được tao đi đã bao giờ cũng được</p>
+  <p>"Tao tin mày có thể làm được"</p>
+
+  <div class="skip-text" id="skipText">Skip →</div>
+</div>
+
+<script>
+/* Trái tim rơi xuống */
+function createHeart() {
+  const heart = document.createElement('div');
+  heart.classList.add('heart');
+  heart.textContent = '❤️';
+  heart.style.left = Math.random() * 100 + 'vw';
+  heart.style.animationDuration = (3 + Math.random() * 3) + 's';
+  document.getElementById('cardPage').appendChild(heart);
+  setTimeout(() => heart.remove(), 6000);
+}
+setInterval(createHeart, 400);
+
+/* Click sang trang pháo hoa */
+document.getElementById('cardPage').addEventListener('click', () => goNext());
+document.getElementById('skipText').addEventListener('click', (e) => {
+  e.stopPropagation();
+  goNext();
+});
+
+function goNext() {
+  const card = document.getElementById('cardPage');
+  card.style.opacity = '0';
+  setTimeout(() => {
+    card.style.display = 'none';
+    document.getElementById('fireworks').style.display = 'block';
+    startFireworks();
+  }, 1000);
+}
+
+/* === Pháo hoa nổ ra chữ + tiếp tục bắn === */
+function startFireworks() {
+  const canvas = document.getElementById("fireworks");
+  const ctx = canvas.getContext("2d");
+  let w = canvas.width = window.innerWidth;
+  let h = canvas.height = window.innerHeight;
+
+  window.onresize = () => {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  };
+
+  class Firework {
+    constructor(x) {
+      this.x = x;
+      this.y = h;
+      this.targetY = 150 + Math.random() * (h / 3);
+      this.speed = 5 + Math.random() * 3; // nhanh hơn chút
+      this.color = `hsl(${Math.random() * 360},100%,60%)`;
+      this.exploded = false;
+    }
+    update() {
+      if (!this.exploded) {
+        this.y -= this.speed;
+        if (this.y <= this.targetY) {
+          this.exploded = true;
+          explode(this.x, this.y, this.color);
+        }
+      }
+    }
+    draw() {
+      if (!this.exploded) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+    }
+  }
+
+  class Particle {
+    constructor(x, y, color, target) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.tx = target.x;
+      this.ty = target.y;
+      this.life = 0;
+      this.alpha = 1;
+    }
+    update() {
+      this.x += (this.tx - this.x) * 0.05;
+      this.y += (this.ty - this.y) * 0.05;
+      this.life++;
+      if (this.life > 60) this.alpha -= 0.02;
+    }
+    draw() {
+      ctx.globalAlpha = this.alpha;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  const fireworks = [];
+  const particles = [];
+  let finalShown = false;
+  let startTime = Date.now();
+  let textAlpha = 0;
+  let textVisible = false;
+
+  function heartPoints(size = 10) {
+    const pts = [];
+    for (let t = 0; t < Math.PI * 2; t += 0.1) {
+      const x = size * 16 * Math.pow(Math.sin(t), 3);
+      const y = -size * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+      pts.push({x, y});
+    }
+    return pts;
+  }
+
+  const heartShape = heartPoints(8);
+
+  function explode(x, y, color) {
+    heartShape.forEach(p => {
+      particles.push(new Particle(x, y, color, {x: x + p.x, y: y + p.y}));
+    });
+  }
+
+  function drawFinalText(x, y) {
+    ctx.save();
+    ctx.globalAlpha = textAlpha;
+    ctx.font = "bold 50px Poppins";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff99c8";
+    ctx.shadowColor = "#ff4d6d";
+    ctx.shadowBlur = 25;
+    ctx.fillText("Chúc mày một ngày 20/10 thật mát mát tẻn tẻn ❤️", x, y);
+    ctx.restore();
+  }
+
+  function loop() {
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0, 0, w, h);
+
+    const elapsed = (Date.now() - startTime) / 1000;
+
+    // Pháo hoa bắn nhanh và đều
+    if (Math.random() < 0.05) {
+      fireworks.push(new Firework(Math.random() * w));
+    }
+
+    if (elapsed > 4 && !finalShown) {
+      const finalFirework = new Firework(w / 2);
+      finalFirework.targetY = h / 3;
+      fireworks.push(finalFirework);
+      finalShown = true;
+      setTimeout(() => { textVisible = true; }, 2000);
+    }
+
+    fireworks.forEach((fw, i) => {
+      fw.update();
+      fw.draw();
+      if (fw.exploded) fireworks.splice(i, 1);
+    });
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.update();
+      p.draw();
+      if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    if (textVisible) {
+      if (textAlpha < 1) textAlpha += 0.02;
+      else {
+        setTimeout(() => {
+          const fade = setInterval(() => {
+            textAlpha -= 0.02;
+            if (textAlpha <= 0) clearInterval(fade);
+          }, 100);
+        }, 4000);
+        textVisible = false;
+      }
+    }
+
+    drawFinalText(w / 2, h / 2);
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+}
+</script>
+</body>
+</html>
